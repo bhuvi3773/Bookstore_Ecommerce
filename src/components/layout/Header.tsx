@@ -1,118 +1,261 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useStore } from '../../context/StoreContext'
-import { books } from '../../data/books'
+import { categories, getBookBySlug } from '../../data/books'
+import { useDialog } from '../../hooks/useDialog'
+import { Brand } from './Brand'
+import { SearchBox } from './SearchBox'
+import { BookCover } from '../ui/BookCover'
+import { Icon } from '../ui/Icon'
 
 export function Header() {
-  const navigate = useNavigate()
-  const { cart, wishlist } = useStore()
-  const [query, setQuery] = useState('')
+  const location = useLocation()
+  const { cartCount, wishlist, user, openCart } = useStore()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const [mobileSearch, setMobileSearch] = useState(false)
+  const [megaOpen, setMegaOpen] = useState(false)
+  const [cartBump, setCartBump] = useState(false)
+  const previousCount = useRef(cartCount)
+  const bumpTimer = useRef<number | null>(null)
+  const menuRef = useDialog(mobileOpen, () => setMobileOpen(false))
+  const featured = getBookBySlug('the-mapmakers-daughter')
 
-  const suggestions = query.trim()
-    ? books
-        .filter((b) => b.title.toLowerCase().includes(query.toLowerCase()) || b.author.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 4)
-    : []
+  useEffect(() => {
+    setMobileOpen(false)
+    setMobileSearch(false)
+    setMegaOpen(false)
+  }, [location.pathname, location.search])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`)
-      setQuery('')
-      setMobileOpen(false)
-    } else {
-      navigate('/books')
+  useEffect(() => {
+    if (cartCount !== previousCount.current) {
+      previousCount.current = cartCount
+      setCartBump(true)
+      if (bumpTimer.current) window.clearTimeout(bumpTimer.current)
+      bumpTimer.current = window.setTimeout(() => setCartBump(false), 420)
     }
-  }
+    return () => {
+      if (bumpTimer.current) window.clearTimeout(bumpTimer.current)
+    }
+  }, [cartCount])
 
   return (
-    <header>
-      <div style={{ background: 'linear-gradient(90deg, #8b7355, #a08968)', color: '#f8f3ec' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'center', padding: '0.6rem 0', textAlign: 'center' }}>
-          <span style={{ letterSpacing: '0.24em', textTransform: 'uppercase', fontSize: '0.68rem', lineHeight: '1.6' }}>
-            Free shipping on orders above ₹1499 • Curated for book lovers
-          </span>
+    <header className="site-header">
+      <div className="announcement">
+        <div className="container announcement__inner">
+          <span className="announcement__item"><Icon name="truck" size={14} /> Free delivery over ₹1,499</span>
+          <span className="announcement__dot" aria-hidden="true" />
+          <span className="announcement__item announcement__item--hide-mobile"><Icon name="refresh" size={14} /> 30-day easy returns</span>
+          <span className="announcement__dot announcement__item--hide-mobile" aria-hidden="true" />
+          <span className="announcement__item announcement__item--hide-tablet"><Icon name="sparkle" size={14} /> Independently curated since 2014</span>
+          <Link to="/books?collection=editors" className="announcement__link">
+            The winter shelf <Icon name="arrow-right" size={13} />
+          </Link>
         </div>
       </div>
-      <div style={{ background: 'rgba(251,246,240,0.98)', backdropFilter: 'blur(14px)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 30 }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '0.8rem 0' }}>
-          <Link to="/" style={{ display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-            <span style={{ fontFamily: 'Cormorant', fontSize: '1.7rem', letterSpacing: '0.18em', textTransform: 'uppercase' }}>Hawthorn</span>
-            <span style={{ fontSize: '0.68rem', letterSpacing: '0.36em', textTransform: 'uppercase', color: 'var(--muted)' }}>Bookstore</span>
-          </Link>
-          <nav style={{ display: 'none', gap: '1.6rem', marginLeft: '1.2rem' }} className="nav-desktop">
-            <NavLink to="/books">Shop Books</NavLink>
-            <NavLink to="/categories/fiction">Fiction</NavLink>
-            <NavLink to="/categories/mystery">Mystery</NavLink>
-            <NavLink to="/categories/romance">Romance</NavLink>
-            <NavLink to="/categories/self-help">Self-Help</NavLink>
-            <NavLink to="/categories/business">Business</NavLink>
-          </nav>
-          <div style={{ flex: 1, display: 'none', position: 'relative' }} className="search-desktop">
-            <form onSubmit={handleSearch} style={{ width: '100%' }}>
-              <input className="input" placeholder="Search by title, author, ISBN or keyword" value={query} onChange={(e) => setQuery(e.target.value)} />
-            </form>
-            {suggestions.length > 0 && (
-              <div className="card" style={{ position: 'absolute', top: 'calc(100% + 0.7rem)', left: 0, right: 0, padding: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', zIndex: 40 }}>
-                {suggestions.map((s) => (
-                  <Link key={s.id} to={`/books/${s.slug}`} onClick={() => setQuery('')} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                    <img src={s.cover} alt={s.title} style={{ width: '44px', height: '60px', objectFit: 'cover', borderRadius: '10px' }} />
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{s.title}</div>
-                      <div style={{ color: 'var(--muted)' }}>{s.author}</div>
+
+      <div className="header-bar">
+        <div className="container header-bar__inner">
+          <button type="button" className="header-icon header-icon--mobile" onClick={() => setMobileOpen(true)} aria-label="Open menu" aria-expanded={mobileOpen} aria-controls="mobile-menu">
+            <Icon name="menu" size={21} />
+          </button>
+
+          <Brand />
+
+          <nav className="primary-nav" aria-label="Primary">
+            <NavLink to="/books" end className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}>
+              Browse
+            </NavLink>
+            <div
+              className={`nav-dropdown ${megaOpen ? 'is-open' : ''}`}
+              onMouseEnter={() => setMegaOpen(true)}
+              onMouseLeave={() => setMegaOpen(false)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node)) setMegaOpen(false)
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setMegaOpen(false)
+                  event.currentTarget.querySelector<HTMLButtonElement>('.nav-dropdown__trigger')?.focus()
+                }
+              }}
+            >
+              <button
+                type="button"
+                className={`nav-link nav-dropdown__trigger ${location.pathname.startsWith('/categories') ? 'is-active' : ''}`}
+                aria-expanded={megaOpen}
+                aria-controls="category-menu"
+                onClick={() => setMegaOpen((open) => !open)}
+              >
+                Categories
+                <Icon name="chevron-down" size={14} />
+              </button>
+              <div id="category-menu" className={`mega-menu ${megaOpen ? 'is-open' : ''}`} aria-hidden={!megaOpen}>
+                <div className="container mega-menu__inner">
+                  <div className="mega-menu__main">
+                    <div className="mega-menu__heading">
+                      <span className="eyebrow">Browse the shop</span>
+                      <p>Twelve shelves, endlessly different reading lives.</p>
                     </div>
+                    <div className="mega-menu__grid">
+                      {categories.map((category) => (
+                        <Link key={category.slug} to={`/categories/${category.slug}`} className="mega-category">
+                          <span className="mega-category__count">{String(category.count).padStart(2, '0')}</span>
+                          <span className="mega-category__name">{category.name}</span>
+                          <span className="mega-category__tagline">{category.tagline}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                  {featured ? (
+                    <div className="mega-menu__feature">
+                      <span className="eyebrow">Bookseller&apos;s choice</span>
+                      <Link to={`/books/${featured.slug}`} className="mega-feature">
+                        <span className="mega-feature__cover"><BookCover book={featured} decorative /></span>
+                        <span className="mega-feature__copy">
+                          <strong>{featured.title}</strong>
+                          <span>{featured.author}</span>
+                          <span className="mega-feature__link">Read the shelf note <Icon name="arrow-right" size={14} /></span>
+                        </span>
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <NavLink to="/books?sort=newest" className="nav-link">New &amp; notable</NavLink>
+            <NavLink to="/books?collection=editors" className="nav-link">Editor&apos;s picks</NavLink>
+          </nav>
+
+          <div className="header-tools">
+            <div className="header-search">
+              <SearchBox idPrefix="desktop" />
+            </div>
+            <button type="button" className="header-icon header-icon--search-mobile" onClick={() => setMobileSearch((open) => !open)} aria-label="Search books" aria-expanded={mobileSearch} aria-controls="mobile-search-panel">
+              <Icon name={mobileSearch ? 'close' : 'search'} size={20} />
+            </button>
+            <Link
+              to="/account"
+              className="header-tool"
+              aria-label={user ? `Your account, ${user.name}` : 'Sign in to your account'}
+            >
+              <Icon name="user" size={20} />
+              <span className="header-tool__label">{user ? user.name.split(' ')[0] : 'Account'}</span>
+            </Link>
+            <Link
+              to="/wishlist"
+              className="header-tool"
+              aria-label={wishlist.length > 0 ? `${wishlist.length} Wishlist — view saved books` : 'Wishlist — view saved books'}
+            >
+              <span className="header-tool__icon">
+                <Icon name="heart" size={20} />
+                {wishlist.length > 0 ? <span className="count-badge" aria-hidden="true">{wishlist.length}</span> : null}
+              </span>{' '}
+              <span className="header-tool__label">Wishlist</span>
+            </Link>
+            <button
+              type="button"
+              className={`header-tool header-cart ${cartBump ? 'is-bumping' : ''}`}
+              onClick={openCart}
+              aria-label={`${cartCount} Bag — open bag`}
+            >
+              <span className="header-tool__icon">
+                <Icon name="bag" size={20} />
+                <span className={`count-badge ${cartBump ? 'is-bumping' : ''}`} aria-hidden="true">{cartCount}</span>
+              </span>{' '}
+              <span className="header-tool__label">Bag</span>
+            </button>
+          </div>
+        </div>
+
+        {mobileSearch ? (
+          <div className="mobile-search-panel" id="mobile-search-panel">
+            <div className="container">
+              <SearchBox idPrefix="mobile-header" autoFocus onNavigate={() => setMobileSearch(false)} />
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className={`drawer-backdrop ${mobileOpen ? 'is-open' : ''}`} onClick={() => setMobileOpen(false)} aria-hidden="true" />
+      <aside
+        ref={menuRef}
+        id="mobile-menu"
+        className={`mobile-menu ${mobileOpen ? 'is-open' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu"
+        aria-hidden={!mobileOpen}
+        inert={!mobileOpen}
+        tabIndex={-1}
+      >
+        <div className="mobile-menu__header">
+          <Brand compact />
+          <button type="button" className="icon-button" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+            <Icon name="close" size={20} />
+          </button>
+        </div>
+
+        <div className="mobile-menu__scroll">
+          <div className="mobile-menu__search">
+            <SearchBox idPrefix="mobile-menu" onNavigate={() => setMobileOpen(false)} />
+          </div>
+
+          <nav className="mobile-nav" aria-label="Mobile">
+            <Link to="/books" className="mobile-nav__link" onClick={() => setMobileOpen(false)}>
+              <span>Browse all books</span>
+              <Icon name="arrow-right" size={16} />
+            </Link>
+            <details className="mobile-nav__group">
+              <summary>
+                <span>Categories</span>
+                <Icon name="chevron-down" size={16} />
+              </summary>
+              <div className="mobile-nav__sub">
+                {categories.map((category) => (
+                  <Link key={category.slug} to={`/categories/${category.slug}`} onClick={() => setMobileOpen(false)}>
+                    <span>{category.name}</span>
+                    <span>{category.count}</span>
                   </Link>
                 ))}
               </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
-            <Link to="/wishlist" style={{ display: 'none', gap: '0.4rem', alignItems: 'center' }} className="icon-link">
+            </details>
+            <Link to="/books?sort=newest" className="mobile-nav__link" onClick={() => setMobileOpen(false)}>
+              <span>New &amp; notable</span>
+              <Icon name="arrow-right" size={16} />
+            </Link>
+            <Link to="/books?collection=editors" className="mobile-nav__link" onClick={() => setMobileOpen(false)}>
+              <span>Editor&apos;s picks</span>
+              <Icon name="arrow-right" size={16} />
+            </Link>
+            <Link to="/about" className="mobile-nav__link" onClick={() => setMobileOpen(false)}>
+              <span>Our story</span>
+              <Icon name="arrow-right" size={16} />
+            </Link>
+          </nav>
+
+          <div className="mobile-menu__account">
+            <Link to="/account" className="mobile-account-link" onClick={() => setMobileOpen(false)}>
+              <Icon name="user" size={18} />
+              <span>{user ? `Hello, ${user.name.split(' ')[0]}` : 'Account & orders'}</span>
+            </Link>
+            <Link to="/wishlist" className="mobile-account-link" onClick={() => setMobileOpen(false)}>
+              <Icon name="heart" size={18} />
               <span>Wishlist</span>
-              <span style={{ border: '1px solid var(--border)', borderRadius: '9999px', padding: '0.2rem 0.7rem' }}>{wishlist.length}</span>
+              <span className="count-badge">{wishlist.length}</span>
             </Link>
-            <Link to="/cart" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-              <span style={{ display: 'none' }} className="cart-label">Cart</span>
-              <span style={{ border: '1px solid var(--border)', borderRadius: '9999px', padding: '0.22rem 0.7rem' }}>{cartCount}</span>
+            <Link to="/cart" className="mobile-account-link" onClick={() => setMobileOpen(false)}>
+              <Icon name="bag" size={18} />
+              <span>Your bag</span>
+              <span className="count-badge">{cartCount}</span>
             </Link>
-            <Link to="/account" className="btn btn-ghost account-link" style={{ padding: '0.6rem 1rem', display: 'none' }}>Account</Link>
-            <button className="btn btn-outline" style={{ padding: '0.6rem 1.2rem' }} onClick={() => setMobileOpen(true)}>Menu</button>
+          </div>
+
+          <div className="mobile-menu__promo">
+            <Icon name="sparkle" size={18} />
+            <p>Free delivery on orders over ₹1,499. Every book wrapped with care.</p>
           </div>
         </div>
-      </div>
-
-      {mobileOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(43,36,29,0.5)', zIndex: 50 }} onClick={() => setMobileOpen(false)}>
-          <div style={{ position: 'absolute', top: 0, right: 0, width: 'min(340px, 100%)', height: '100%', background: 'var(--surface)', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.9rem 1.2rem', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontFamily: 'Cormorant', letterSpacing: '0.2em', textTransform: 'uppercase' }}>Hawthorn</span>
-              <button className="btn btn-ghost" style={{ padding: '0.6rem 0.8rem' }} onClick={() => setMobileOpen(false)}>Close</button>
-            </div>
-            <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-              <form onSubmit={handleSearch}>
-                <input className="input" placeholder="Search books" value={query} onChange={(e) => setQuery(e.target.value)} />
-              </form>
-              <NavLink to="/books" onClick={() => setMobileOpen(false)}>Shop Books</NavLink>
-              <NavLink to="/categories/fiction" onClick={() => setMobileOpen(false)}>Fiction</NavLink>
-              <NavLink to="/categories/mystery" onClick={() => setMobileOpen(false)}>Mystery</NavLink>
-              <NavLink to="/categories/romance" onClick={() => setMobileOpen(false)}>Romance</NavLink>
-              <NavLink to="/categories/self-help" onClick={() => setMobileOpen(false)}>Self-Help</NavLink>
-              <NavLink to="/categories/business" onClick={() => setMobileOpen(false)}>Business</NavLink>
-              <NavLink to="/wishlist" onClick={() => setMobileOpen(false)}>Wishlist ({wishlist.length})</NavLink>
-              <NavLink to="/cart" onClick={() => setMobileOpen(false)}>Cart ({cartCount})</NavLink>
-              <NavLink to="/account" onClick={() => setMobileOpen(false)}>Account</NavLink>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        nav a { letter-spacing: -0.01em; font-size: 0.95rem; color: var(--muted); }
-        nav a.active { color: var(--ink); }
-        @media (min-width: 1120px) { .nav-desktop { display: flex !important; } .search-desktop { display: flex !important; } .icon-link { display: flex !important; } .account-link { display: inline-flex !important; } .cart-label { display: inline !important; } }
-      `}</style>
+      </aside>
     </header>
   )
 }

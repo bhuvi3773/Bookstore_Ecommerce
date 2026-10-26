@@ -1,32 +1,36 @@
-# React + TypeScript + Vite
+# Hawthorn Booksellers
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A premium, frontend-only bookstore built with React, TypeScript, Vite and React Router. The catalogue, cart, wishlist, checkout and account flows all run locally in the browser; there is no server, database or payment integration.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Production verification:
+
+```bash
+npm run build
+npm run lint
+npm run preview
+```
+
+## What is included
+
+- 36 original demo titles across 12 categories, with covers drawn in CSS/SVG.
+- Home, catalogue, category, search, book detail, cart, checkout, order confirmation, wishlist, account, auth and support routes.
+- Filtering by category, author, language, format, rating, price and stock; sorting and load-more pagination.
+- Search suggestions with keyboard navigation, plus a full search page.
+- Cart drawer, quantity controls, stock clamping and four demo coupons: `WELCOME10`, `READ15`, `SHELF20`, `FRESHIP`.
+- Five-step demo checkout with inline validation and locally stored orders.
+- Demo sign-in/registration, recently viewed books, wishlist and local persistence.
+- Responsive layouts, reduced-motion support, focus-trapped overlays and accessible feedback.
+
+## Demo boundaries
+
+- Authentication accepts any password of six or more characters and stores only a name and email locally.
+- Checkout never collects or processes real payment details; card fields are presentational.
+- Orders, cart, wishlist, coupon and account data live in `localStorage` under the `bookstore_*` keys.
+- Book data, reviews, stock and delivery estimates are fictional demo content.

@@ -23,11 +23,15 @@ export interface Book {
   editorPick?: boolean
   description: string
   highlights: string[]
+  publishedYear?: number
+  tags?: string[]
+  moods?: string[]
 }
 
 export interface CartItem {
   bookId: string
   quantity: number
+  format?: BookFormat
 }
 
 export interface WishlistItem {
@@ -47,9 +51,16 @@ export interface Address {
   country: string
 }
 
+export interface OrderItem {
+  book: Book
+  quantity: number
+  format?: BookFormat
+  unitPrice?: number
+}
+
 export interface Order {
   id: string
-  items: { book: Book; quantity: number }[]
+  items: OrderItem[]
   subtotal: number
   discount: number
   shipping: number
@@ -60,4 +71,20 @@ export interface Order {
   deliveryMethod: string
   status: 'confirmed' | 'processing' | 'shipped'
   createdAt: string
+}
+
+export type DeliveryMethod = 'standard' | 'express'
+
+export interface Coupon {
+  code: string
+  description: string
+  type: 'percent' | 'shipping'
+  value: number
+  minSubtotal: number
+  maxDiscount?: number
+}
+
+export interface DemoUser {
+  name: string
+  email: string
 }
